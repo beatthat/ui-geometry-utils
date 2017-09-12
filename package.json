@@ -1,0 +1,36 @@
+{
+    "name": "ui-geometry-utils",
+    "scope": "ape",
+    "version": "0.0.1",
+    "description": "utils to simplify creating UI geometry.",
+    "main": "index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/beatthat/ui-geometry-utils.git"
+    },
+    "files": [
+        "index.js",
+        "scripts",
+        "src"
+    ],
+    "author": "larrykirschner@gmail.com",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/beatthat/ui-geometry-utils/issues"
+    },
+    "homepage": "https://github.com/beatthat/ui-geometry-utils",
+    "scripts": {
+        "postinstall": "node scripts/postinstall.js",
+        "install:test": "rm -f *.tgz && npm pack && cd test && npm run clean && npm install",
+        "clean": "rm -f *.tgz && cd test && npm run clean",
+        "cp:test2src" : "cd test && node scripts/cp-test2src.js",
+        "overwrite:test2src" : "cd test && node scripts/overwrite-test2src.js",
+        "pub:tag": "git add -A && git commit -m ${npm_package_version} && git tag -a ${npm_package_version} -m ${npm_package_version} && git push origin master && git push origin ${npm_package_version}"
+    },
+    "dependencies": {
+        "path": "^0.12.7",
+        "unity-npm-utils": "github:beatthat/unity-npm-utils#semver:^0.0.9",
+        "pools": "github:beatthat/pools#semver:^0.0.8",
+        "rect-utils": "github:beatthat/rect-utils#semver:^0.0.3"
+    }
+}
