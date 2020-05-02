@@ -1,13 +1,14 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Assertions;
-using System.Collections.Generic;
+﻿using BeatThat.Pools;
+using BeatThat.Rects;
 using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Assertions;
+using UnityEngine.UI;
 
-namespace BeatThat
+namespace BeatThat.UIGeometryUtils
 {
-
-	public static class VertexHelperExtensions 
+	public static class VertextHelperUtils 
 	{
 		/// <summary>
 		/// Add verts and tris for a rect with clipping applied.
@@ -25,38 +26,29 @@ namespace BeatThat
 			if(!clipRect.Intersects(r, out rClipped)) {
 				return 0;
 			}
-
 			var uvRect = new Rect(0f, 0f, 1f, 1f);
-
 			var wClip = r.width - rClipped.width;
-
 			if(wClip > 0f) {
 				var uWidth = wClip / r.width;
 
 				uvRect.xMin = uWidth * (Mathf.Abs(r.xMin - rClipped.xMin) / wClip);
 				uvRect.xMax = 1f - (uWidth * ((Mathf.Abs(rClipped.xMax - r.xMax)) / wClip));
 			}
-
 			var hClip = r.height - rClipped.height;
 			if(hClip > 0f) {
 				var uHeight = hClip / r.height;
-
 				uvRect.yMin = uHeight * Mathf.Abs(rClipped.yMin - r.yMin) / hClip;
 				uvRect.yMax = 1f - (uHeight * (Mathf.Abs(rClipped.yMax - r.yMax) / hClip));
 			}
-
 			if(debugging) {
 				c = NextDebugColor();
 			}
-
 			vh.AddVert(new Vector3(rClipped.xMin, rClipped.yMin), c, uvRect.min);
 			vh.AddVert(new Vector3(rClipped.xMin, rClipped.yMax), c, new Vector2(uvRect.xMin, uvRect.yMax));
 			vh.AddVert(new Vector3(rClipped.xMax, rClipped.yMax), c, uvRect.max);
 			vh.AddVert(new Vector3(rClipped.xMax, rClipped.yMin), c, new Vector2(uvRect.xMax, uvRect.yMin));
-
 			vh.AddTriangle(0 + vertOff, 1 + vertOff, 2 + vertOff);
 			vh.AddTriangle(2 + vertOff, 3 + vertOff, 0 + vertOff);
-
 			return 4;
 		}
 
@@ -75,13 +67,10 @@ namespace BeatThat
 				tri.array[0] = quad[0];
 				tri.array[1] = quad[1];
 				tri.array[2] = quad[2];
-
 				var vAdded = vh.AddTriClipped(tri.array, clipRect, vertOff);
-
 				tri.array[0] = quad[2];
 				tri.array[1] = quad[3];
 				tri.array[2] = quad[0];
-
 				return vAdded + vh.AddTriClipped(tri.array, clipRect, vertOff + vAdded);
 			}
 		}
@@ -97,7 +86,6 @@ namespace BeatThat
 		public static int AddTriClipped(this VertexHelper vh, UIVertex[] tri, Rect clipRect, int vertOff)
 		{
 			Assert.AreEqual(3, tri.Length);
-
 			using(var inside = ArrayPool<bool>.Get(tri.Length)) {
 				var numInside = 0;
 				for(int i = 0; i < tri.Length; i++) {
@@ -105,35 +93,26 @@ namespace BeatThat
 						numInside++; 
 					}
 				}
-
 				switch(numInside) {
 				case 3: // all inside, just add the tri as passed
 					return vh.AddTri(tri, vertOff);
 				default:
 					using(var clipRectCorners = ArrayPool<Vector2>.Get(4)) {
-
 						clipRect.GetCorners(clipRectCorners.array);
-
 						using(var output = ListPool<UIVertex>.Get()) {
-
 							SutherlandHodgman.GetIntersectedPolygon(tri, clipRectCorners.array, output);
-
 							if(output.Count == 0) {
 								return 0;
 							}
-
 							if(output.Count < 3) {
 								Debug.LogWarning("Invalid polygon vertex count: " + output.Count);
 								return 0;
 							}
-
 							switch(output.Count) {
 							case 3: 
 								return vh.AddTri(output, vertOff);
-							
 							case 4:
 								return vh.AddQuad(output, vertOff);
-							
 							default:
 								return vh.AddConvexPolygon(output, vertOff);
 							}
@@ -153,7 +132,6 @@ namespace BeatThat
 		{
 			using(var list = ListPool<UIVertex>.Get()) {
 				list.AddRange(polygon);
-
 				var addedVerts = 0;
 				// use ear-clipping method: https://en.wikipedia.org/wiki/Polygon_triangulation
 				while(list.Count > 4) {
@@ -163,18 +141,15 @@ namespace BeatThat
 							list[i] = list[i].SetColor(c);
 						}
 					}
-
 					addedVerts += vh.AddTri(list[0], list[1], list[list.Count - 1], vertOff + addedVerts);
 					list.RemoveAt(0);
 				}
-
 				if(debugging) {
 					var c1 = NextDebugColor();
 					for(int i = 0; i < list.Count; i++) {
 						list[i] = list[i].SetColor(c1);
 					}
-				}
-					
+				}	
 				return addedVerts + vh.AddQuad(list[0], list[1], list[2], list[3], vertOff + addedVerts);
 			}
 		}
@@ -182,20 +157,16 @@ namespace BeatThat
 		public static int AddTri(this VertexHelper vh, IList<UIVertex> tri, int vertOff)
 		{
 			Assert.AreEqual(3, tri.Count);
-
 			if(debugging) {
 				var c = NextDebugColor();
 				for(int i = 0; i < 3; i++) {
 					tri[i] = tri[i].SetColor(c);
 				}
 			}
-
 			vh.AddVert(tri[0]); 
 			vh.AddVert(tri[1]); 
 			vh.AddVert(tri[2]); 
-
 			vh.AddTriangle(0 + vertOff, 1 + vertOff, 2 + vertOff);
-
 			return 3;
 		}
 
@@ -207,36 +178,28 @@ namespace BeatThat
 				v1.color = c;
 				v2.color = c;
 			}
-
 			vh.AddVert(v0); 
 			vh.AddVert(v1); 
 			vh.AddVert(v2); 
-
 			vh.AddTriangle(0 + vertOff, 1 + vertOff, 2 + vertOff);
-
 			return 3;
 		}
 
 		public static int AddQuad(this VertexHelper vh, IList<UIVertex> quad, int vertOff)
 		{
 			Assert.AreEqual(quad.Count, 4);
-
 			if(debugging) {
 				var c = NextDebugColor();
 				for(int i = 0; i < 4; i++) {
 					quad[i] = quad[i].SetColor(c);
 				}
 			}
-
-
 			vh.AddVert(quad[0]); 
 			vh.AddVert(quad[1]); 
 			vh.AddVert(quad[2]); 
 			vh.AddVert(quad[3]); 
-
 			vh.AddTriangle(0 + vertOff, 1 + vertOff, 2 + vertOff);
 			vh.AddTriangle(2 + vertOff, 3 + vertOff, 0 + vertOff);
-
 			return 4;
 		}
 
@@ -249,15 +212,12 @@ namespace BeatThat
 				v2.color = c;
 				v3.color = c;
 			}
-
 			vh.AddVert(v0); 
 			vh.AddVert(v1); 
 			vh.AddVert(v2); 
 			vh.AddVert(v3); 
-
 			vh.AddTriangle(0 + vertOff, 1 + vertOff, 2 + vertOff);
 			vh.AddTriangle(2 + vertOff, 3 + vertOff, 0 + vertOff);
-
 			return 4;
 		}
 
@@ -282,7 +242,7 @@ namespace BeatThat
 			if(debugPinCount == 0) {
 				activeDebugColorIndex = DEBUG_COLORS.Length - 1;
 			}
-			VertexHelperExtensions.debugPinCount++;
+			VertextHelperUtils.debugPinCount++;
 			return new DebugBlock();
 		}
 
@@ -299,10 +259,10 @@ namespace BeatThat
 
 		public static void DebugEnd()
 		{
-			if(VertexHelperExtensions.debugPinCount == 0) {
+			if(VertextHelperUtils.debugPinCount == 0) {
 				return;
 			}
-			VertexHelperExtensions.debugPinCount--;
+			VertextHelperUtils.debugPinCount--;
 		}
 
 		/// <summary>
@@ -312,14 +272,14 @@ namespace BeatThat
 		/// and should be replicated for any Request implementation that doesn't derive from RequestBase.
 		/// </summary>
 		/// <value><c>true</c> if debugging; otherwise, <c>false</c>.</value>
-		public static bool debugging { get { return VertexHelperExtensions.debugPinCount > 0; } }
+		public static bool debugging { get { return VertextHelperUtils.debugPinCount > 0; } }
 
 		class DebugBlock : IDisposable
 		{
 			#region IDisposable implementation
 			public void Dispose ()
 			{
-				VertexHelperExtensions.DebugEnd();
+				VertextHelperUtils.DebugEnd();
 			}
 			#endregion
 		}
@@ -338,10 +298,9 @@ namespace BeatThat
 		private static int debugPinCount { get; set; }
 
 	}
-
-
-
-
-
-
 }
+
+
+
+
+

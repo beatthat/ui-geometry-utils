@@ -1,10 +1,10 @@
-﻿using System;
+﻿using BeatThat.Pools;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
-using BeatThat;
 using System.Diagnostics.CodeAnalysis;
+using UnityEngine;
 
-namespace BeatThat
+namespace BeatThat.UIGeometryUtils
 {
 	public static class SutherlandHodgman
 	{
@@ -43,7 +43,6 @@ namespace BeatThat
 			{
 				throw new ArgumentException(string.Format("The polygons passed in must have at least 3 points: subject={0}, clip={1}", subjectPoly.Length.ToString(), clipPoly.Length.ToString()));
 			}
-
 			using(var clipVertsHolder = ArrayPool<UIVertex>.Get(clipPoly.Length)) {
 				// convert the clip poly to an array of UIVertex just so that we can use a common set of IsClockwise, etc. functions with the subject poly
 
